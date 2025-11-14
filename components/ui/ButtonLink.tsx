@@ -1,10 +1,12 @@
 import * as React from "react"
 import Link, { LinkProps } from "next/link"
 import { cn } from "@/lib/utils"
-import { buttonVariants, type ButtonProps } from "./Button"
+import { buttonVariants } from "./Button"
+import type { VariantProps } from "class-variance-authority"
 
-interface ButtonLinkProps extends LinkProps, Omit<ButtonProps, "disabled" | "isLoading"> {
+interface ButtonLinkProps extends LinkProps, VariantProps<typeof buttonVariants> {
   children: React.ReactNode
+  className?: string
 }
 
 const ButtonLink = React.forwardRef<HTMLAnchorElement, ButtonLinkProps>(
