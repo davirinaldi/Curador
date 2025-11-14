@@ -1,7 +1,6 @@
 'use client'
 
 import { use, useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { ArrowLeft, Sparkles, RefreshCw, FileText, Code, Lightbulb, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ButtonLink } from '@/components/ui/ButtonLink'
@@ -12,7 +11,6 @@ import { Alert, AlertDescription } from '@/components/ui/Alert'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
-import { Select } from '@/components/ui/Select'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { supabase } from '@/lib/supabase/client'
 import { otimizarPromptComGemini } from '@/lib/gemini'
@@ -47,7 +45,6 @@ const TIPO_CARTAO_CONFIG = {
 
 export default function UACartoesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const router = useRouter()
   const [ua, setUa] = useState<UnidadeAprendizagem | null>(null)
   const [cartoes, setCartoes] = useState<Cartao[]>([])
   const [loading, setLoading] = useState(true)
@@ -353,8 +350,10 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                navigator.clipboard.writeText(cartao.prompt_gerado.prompt_completo)
-                                alert('Prompt copiado! Cole na ferramenta: ' + cartao.prompt_gerado.ferramenta_recomendada)
+                                if (cartao.prompt_gerado) {
+                                  navigator.clipboard.writeText(cartao.prompt_gerado.prompt_completo)
+                                  alert('Prompt copiado! Cole na ferramenta: ' + cartao.prompt_gerado.ferramenta_recomendada)
+                                }
                               }}
                               className="mt-2 h-7 text-xs"
                             >
@@ -380,7 +379,7 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                         Editar
                       </Button>
                       <Button
-                        variant="default"
+                        variant="primary"
                         size="sm"
                         onClick={() => abrirModalGerarPrompt(cartao)}
                         className="flex-1"
