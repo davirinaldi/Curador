@@ -1,7 +1,6 @@
 'use client'
 
 import { BookOpen, ArrowRight, Sparkles, Brain, Zap, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
