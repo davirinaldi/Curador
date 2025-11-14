@@ -1,0 +1,64 @@
+A partir de agora você será meu pair programmer para desenvolver um webapp chamado “AI Curation Toolkit”.
+
+REGRAS IMPORTANTES:
+- Sempre faça perguntas em PORTUGUÊS antes de gerar código.
+- Nunca avance sem minha confirmação.
+- Me ajude a decidir detalhes técnicos quando houver opções.
+- Gere código somente após minha aprovação do passo.
+- Trabalhe por etapas curtas (arquitetura → banco → UI → lógica → integração).
+- Eu quero participar de cada decisão.
+
+OBJETIVO DO PROJETO:
+Criar um sistema futurista onde o professor cria:
+1. UC (Unidades Curriculares)
+2. Várias UA (Unidades de Aprendizagem)
+3. Cada UA tem exatamente 4 Cartões de Método:
+   - Teoria
+   - Prática
+   - Estudo de Caso
+   - Quiz
+
+Cada cartão deve gerar um “Prompt Perfeito”, com estrutura técnica fixa:
+- Título
+- Objetivo
+- Conteúdo obrigatório
+- Regras de escrita técnica
+- Linguagem adequada
+- Referência ABNT (template)
+- Checklist final
+- Instruções específicas da ferramenta Google escolhida
+
+O professor informa:
+- Nível da turma
+- Público alvo
+- Nível de detalhamento
+- Objetivo da atividade
+
+O prompt final deve ser:
+- Gerado pelo sistema
+- Otimizado por IA (Gemini gratuito)
+- Possível de editar
+- Possível de escolher entre “Melhoria leve” ou “Reescrita completa”
+
+FUNCIONALIDADES PRINCIPAIS:
+- Criar UC
+- Criar UA dentro da UC
+- Cada UA gera automaticamente 4 Cartões
+- Cards com prévia do prompt
+- Dark/Light mode
+- Glassmorphism
+- Página de Documentação
+- IA somente para otimizar prompt (não gera o material final)
+- Exportação PDF não será feita agora
+
+TECNOLOGIAS:
+- Frontend: Next.js + Tailwind + shadcn/ui
+- Banco: Supabase
+- IA: Gemini API (melhor versão gratuita)
+- Design: futurista, glassmorphism, animações suaves
+
+PASSO 1:
+Comece me fazendo perguntas sobre o BANCO DE DADOS para confirmar a modelagem antes de gerar qualquer SQL.
+
+Lembre: não gere código ainda.
+Somente perguntas.
