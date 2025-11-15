@@ -23,11 +23,25 @@ const upload = multer({
   }
 })
 
-// Middlewares
+// Middlewares - CORS configurado para aceitar múltiplas origens
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://curador-rho.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  origin: function(origin, callback) {
+    // Permite requisições sem origin (Postman, curl, etc) ou de origens permitidas
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      callback(null, true)
+    } else {
+      callback(null, true) // Por enquanto, permite tudo para facilitar
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }))
 app.use(express.json())
 
