@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { ImportarPDF } from '@/components/ImportarPDF'
 import { supabase } from '@/lib/supabase/client'
 import { UnidadeCurricular, UnidadeAprendizagem } from '@/lib/types'
 
@@ -20,7 +21,7 @@ export default function Dashboard() {
   const [uas, setUas] = useState<UnidadeAprendizagem[]>([])
   const [ucSelecionada, setUcSelecionada] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Modal states
@@ -28,6 +29,11 @@ export default function Dashboard() {
   const [showCreateUAModal, setShowCreateUAModal] = useState(false)
   const [novaUC, setNovaUC] = useState({ titulo: '', descricao: '' })
   const [novaUA, setNovaUA] = useState({ titulo: '', descricao: '' })
+
+  // Inicializa sidebar baseado no tamanho da tela (apenas no cliente)
+  useEffect(() => {
+    setSidebarOpen(window.innerWidth >= 768)
+  }, [])
 
   useEffect(() => {
     carregarUCs()
@@ -104,6 +110,58 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao criar UC:', error)
       setError('Erro ao criar Unidade Curricular')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deletarUC(ucId: string) {
+    if (!confirm('Tem certeza que deseja deletar esta UC? Todas as UAs e Cartões relacionados serão deletados.')) {
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      // O Supabase deve ter CASCADE configurado, mas vamos garantir deletando manualmente
+      // 1. Buscar todas as UAs da UC
+      const { data: uasData } = await supabase
+        .from('unidades_aprendizagem')
+        .select('id')
+        .eq('uc_id', ucId)
+
+      if (uasData && uasData.length > 0) {
+        const uaIds = uasData.map(ua => ua.id)
+
+        // 2. Deletar todos os cartões dessas UAs
+        await supabase
+          .from('cartoes')
+          .delete()
+          .in('ua_id', uaIds)
+
+        // 3. Deletar todas as UAs
+        await supabase
+          .from('unidades_aprendizagem')
+          .delete()
+          .eq('uc_id', ucId)
+      }
+
+      // 4. Deletar a UC
+      const { error: err } = await supabase
+        .from('unidades_curriculares')
+        .delete()
+        .eq('id', ucId)
+
+      if (err) throw err
+
+      // Atualiza a lista e limpa seleção se necessário
+      if (ucSelecionada === ucId) {
+        setUcSelecionada(null)
+      }
+      await carregarUCs()
+    } catch (error) {
+      console.error('Erro ao deletar UC:', error)
+      setError('Erro ao deletar Unidade Curricular')
     } finally {
       setLoading(false)
     }
@@ -290,27 +348,41 @@ export default function Dashboard() {
                 </div>
               ) : (
                 ucs.map((uc) => (
-                  <button
+                  <div
                     key={uc.id}
-                    onClick={() => {
-                      setUcSelecionada(uc.id)
-                      if (window.innerWidth < 768) setSidebarOpen(false)
-                    }}
                     className={`
-                      w-full text-left p-4 rounded-lg border transition-all
+                      relative w-full rounded-lg border transition-all
                       ${ucSelecionada === uc.id
                         ? 'bg-primary/10 border-primary text-foreground shadow-sm'
                         : 'bg-card border-border hover:bg-accent hover:border-accent-foreground/20'
                       }
                     `}
                   >
-                    <p className="font-medium truncate">{uc.titulo}</p>
-                    {uc.descricao && (
-                      <p className="text-xs text-muted-foreground truncate mt-1">
-                        {uc.descricao}
-                      </p>
-                    )}
-                  </button>
+                    <button
+                      onClick={() => {
+                        setUcSelecionada(uc.id)
+                        if (window.innerWidth < 768) setSidebarOpen(false)
+                      }}
+                      className="w-full text-left p-4 pr-12"
+                    >
+                      <p className="font-medium truncate">{uc.titulo}</p>
+                      {uc.descricao && (
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {uc.descricao}
+                        </p>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deletarUC(uc.id)
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Deletar UC"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 ))
               )}
             </div>
@@ -430,18 +502,34 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full p-6">
-              <div className="text-center space-y-4 max-w-md">
+            <div className="container max-w-3xl mx-auto p-4 md:p-6 space-y-6">
+              <div className="text-center space-y-4">
                 <BookOpen className="h-20 w-20 mx-auto text-muted-foreground/50" />
                 <div className="space-y-2">
                   <p className="text-xl font-medium">Nenhuma UC selecionada</p>
                   <p className="text-muted-foreground">
-                    Selecione uma Unidade Curricular na barra lateral ou crie uma nova
+                    Importe um Plano de Ensino (PDF) ou crie uma UC manualmente
                   </p>
                 </div>
+              </div>
+
+              <ImportarPDF />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
                 <Button onClick={() => setShowCreateUCModal(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Criar Nova UC
+                  Criar UC Manualmente
                 </Button>
               </div>
             </div>
