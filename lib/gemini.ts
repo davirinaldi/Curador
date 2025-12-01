@@ -15,22 +15,26 @@ const FERRAMENTAS_CONFIG = {
   teoria: {
     ferramenta: 'NotebookLM' as const,
     justificativa: 'Para conteúdo teórico extenso com conceitos complexos, equações e referências',
-    formato_ideal: 'Texto estruturado com seções, equações LaTeX e referências bibliográficas'
+    formato_ideal: 'Texto estruturado com seções, equações LaTeX e referências bibliográficas',
+    limite_palavras: 3000 // NotebookLM suporta prompts extensos
   },
   pratica: {
     ferramenta: 'Google Colab' as const,
     justificativa: 'Para exercícios práticos com código, simulações e análises interativas',
-    formato_ideal: 'Notebooks Jupyter com células de código Python, visualizações e markdown explicativo'
+    formato_ideal: 'Notebooks Jupyter com células de código Python, visualizações e markdown explicativo',
+    limite_palavras: 2000 // Google Colab tem limite de 2000 palavras
   },
   estudo_caso: {
     ferramenta: 'NotebookLM' as const,
     justificativa: 'Para análise profunda de casos reais com múltiplas fontes e contexto detalhado',
-    formato_ideal: 'Análise estruturada com contexto, problema, solução e conclusões'
+    formato_ideal: 'Análise estruturada com contexto, problema, solução e conclusões',
+    limite_palavras: 3500 // NotebookLM permite análises extensas
   },
   quiz: {
     ferramenta: 'Gemini' as const,
     justificativa: 'Para geração rápida de questões objetivas e avaliativas',
-    formato_ideal: 'Lista de questões com alternativas, gabarito e justificativas'
+    formato_ideal: 'Lista de questões com alternativas, gabarito e justificativas',
+    limite_palavras: 2500 // Gemini geralmente aceita prompts moderados
   }
 }
 
@@ -65,7 +69,7 @@ REQUISITOS DE QUALIDADE:
 - Cite normas técnicas relevantes (ABNT, ISO, IEEE, etc.)
 - Forneça exemplos numéricos resolvidos
 - Relacione teoria com aplicações práticas da engenharia
-- Extensão: 800-1200 palavras`,
+- Extensão máxima: 1000 palavras`,
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
@@ -109,7 +113,8 @@ REQUISITOS TÉCNICOS:
 - Forneça dados de exemplo ou geração de dados sintéticos
 - Comente o código de forma didática
 - Adicione verificações de sanidade e validações
-- Extensão: 400-700 palavras + código`,
+- LIMITE CRÍTICO: Prompt completo NÃO pode exceder 600 palavras (Google Colab limita em 2000 palavras totais)
+- Seja conciso e direto, priorizando instruções claras sobre descrições longas`,
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
@@ -155,7 +160,7 @@ REQUISITOS DE QUALIDADE:
 - Cite normas, códigos e regulamentações aplicáveis
 - Apresente múltiplas perspectivas de solução
 - Relacione com tendências atuais da engenharia
-- Extensão: 900-1500 palavras`,
+- Extensão máxima: 1200 palavras`,
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
@@ -207,7 +212,8 @@ REQUISITOS DE QUALIDADE:
 - Inclua questões com cálculos práticos quando aplicável
 - Evite pegadinhas ou ambiguidades
 - Forneça feedback formativo nas justificativas
-- Total: 16-21 questões`,
+- Total: 10-15 questões
+- Extensão máxima do prompt: 800 palavras`,
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
@@ -280,7 +286,7 @@ export async function otimizarPromptComGemini(
         throw new Error('Texto vazio na resposta do Gemini')
       }
 
-      return extrairPromptGerado(textoResposta)
+      return extrairPromptGerado(textoResposta, request.tipo)
     } catch (error: any) {
       tentativa++
 
@@ -426,14 +432,18 @@ REGRAS CRÍTICAS:
 4. Use linguagem imperativa e direta no prompt_completo
 5. O prompt deve gerar conteúdo com ${detalhamento}
 6. Retorne APENAS o JSON válido, sem markdown, sem explicações adicionais
+7. ⚠️ LIMITE DE PALAVRAS OBRIGATÓRIO: O "prompt_completo" NÃO pode exceder ${config.limite_palavras} palavras (ferramenta ${config.ferramenta} tem este limite técnico)
+8. Seja extremamente conciso e direto - elimine redundâncias, use frases curtas e objetivas
+9. Priorize instruções essenciais sobre explicações longas
 
-IMPORTANTE: O "prompt_completo" será copiado e colado diretamente pelo professor. Garanta que ele seja claro, completo e gere o material educacional esperado.`
+IMPORTANTE: O "prompt_completo" será copiado e colado diretamente pelo professor na ferramenta ${config.ferramenta}.
+CRÍTICO: Se o prompt exceder ${config.limite_palavras} palavras, ele será REJEITADO pela ferramenta. Conte as palavras e seja rigoroso com o limite.`
 }
 
 /**
  * Extrai e valida o JSON do prompt gerado
  */
-export function extrairPromptGerado(resposta: string): Record<string, any> {
+export function extrairPromptGerado(resposta: string, tipo?: 'teoria' | 'pratica' | 'estudo_caso' | 'quiz'): Record<string, any> {
   try {
     // Estratégia 1: Parse direto após limpeza básica
     let jsonString = resposta.trim()
@@ -443,8 +453,8 @@ export function extrairPromptGerado(resposta: string): Record<string, any> {
 
     const parsed = JSON.parse(jsonString)
 
-    // Validar campos obrigatórios
-    validarCamposPrompt(parsed)
+    // Validar campos obrigatórios e limite de palavras
+    validarCamposPrompt(parsed, tipo)
 
     return parsed
   } catch (error1) {
@@ -469,20 +479,29 @@ export function extrairPromptGerado(resposta: string): Record<string, any> {
         .replace(/\s+/g, ' ')
 
       const parsed = JSON.parse(jsonLimpo)
-      validarCamposPrompt(parsed)
+      validarCamposPrompt(parsed, tipo)
 
       return parsed
     } catch (error2) {
       // Estratégia 3: Reconstrução manual
-      return reconstruirJSONManualmente(resposta)
+      return reconstruirJSONManualmente(resposta, tipo)
     }
   }
 }
 
 /**
- * Valida se os campos obrigatórios estão presentes
+ * Conta o número de palavras em um texto
  */
-function validarCamposPrompt(obj: any): void {
+function contarPalavras(texto: string): number {
+  if (!texto || typeof texto !== 'string') return 0
+  // Remove espaços extras e quebras de linha, depois conta palavras separadas por espaços
+  return texto.trim().replace(/\s+/g, ' ').split(' ').filter(palavra => palavra.length > 0).length
+}
+
+/**
+ * Valida se os campos obrigatórios estão presentes e se o prompt respeita os limites
+ */
+function validarCamposPrompt(obj: any, tipo?: 'teoria' | 'pratica' | 'estudo_caso' | 'quiz'): void {
   const camposObrigatorios = ['titulo', 'objetivo', 'prompt_completo', 'ferramenta_recomendada', 'formato_saida']
 
   for (const campo of camposObrigatorios) {
@@ -490,12 +509,25 @@ function validarCamposPrompt(obj: any): void {
       console.warn(`Campo obrigatório ausente: ${campo}`)
     }
   }
+
+  // Validar limite de palavras se o tipo foi fornecido
+  if (tipo && obj.prompt_completo) {
+    const config = FERRAMENTAS_CONFIG[tipo]
+    const numPalavras = contarPalavras(obj.prompt_completo)
+
+    if (numPalavras > config.limite_palavras) {
+      console.warn(`⚠️ AVISO: Prompt excede o limite! ${numPalavras} palavras (limite: ${config.limite_palavras} para ${config.ferramenta})`)
+      console.warn(`O prompt pode ser rejeitado pela ferramenta ${config.ferramenta}`)
+    } else {
+      console.log(`✓ Prompt dentro do limite: ${numPalavras}/${config.limite_palavras} palavras para ${config.ferramenta}`)
+    }
+  }
 }
 
 /**
  * Tenta reconstruir o JSON manualmente quando o parse falha
  */
-function reconstruirJSONManualmente(resposta: string): Record<string, any> {
+function reconstruirJSONManualmente(resposta: string, tipo?: 'teoria' | 'pratica' | 'estudo_caso' | 'quiz'): Record<string, any> {
   try {
     console.warn('Tentando reconstrução manual do JSON...')
 
@@ -531,6 +563,9 @@ function reconstruirJSONManualmente(resposta: string): Record<string, any> {
       formato_saida: formato,
       contexto_adicional: contexto
     }
+
+    // Validar o JSON reconstruído
+    validarCamposPrompt(jsonReconstruido, tipo)
 
     console.log('JSON reconstruído com sucesso')
     return jsonReconstruido
