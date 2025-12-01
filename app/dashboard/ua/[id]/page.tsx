@@ -576,7 +576,29 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
               </div>
 
               <div>
-                <label className="font-semibold text-sm text-primary">Prompt Completo:</label>
+                <label className="font-semibold text-sm text-primary flex items-center justify-between">
+                  <span>Prompt Completo:</span>
+                  <span className={`text-xs font-normal ${
+                    cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada === 'Google Colab' &&
+                    cartaoPromptVisualizacao.prompt_gerado.prompt_completo.length > 2000
+                      ? 'text-red-600 font-semibold'
+                      : 'text-muted-foreground'
+                  }`}>
+                    {cartaoPromptVisualizacao.prompt_gerado.prompt_completo.length} caracteres
+                    {cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada === 'Google Colab' && (
+                      <span className="ml-1">/ 2000</span>
+                    )}
+                  </span>
+                </label>
+                {cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada === 'Google Colab' &&
+                 cartaoPromptVisualizacao.prompt_gerado.prompt_completo.length > 2000 && (
+                  <Alert className="mt-2 border-red-200 bg-red-50 dark:bg-red-950/20">
+                    <AlertDescription className="text-red-800 dark:text-red-200 text-xs">
+                      ⚠️ Aviso: Este prompt excede o limite de 2000 caracteres do Google Colab e pode ser rejeitado.
+                      Considere gerar novamente ou editar o prompt.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="mt-1 bg-muted/30 rounded-md border">
                   <div className="p-3 max-h-64 overflow-y-auto">
                     <p className="whitespace-pre-wrap font-mono text-sm">
