@@ -85,10 +85,7 @@ app.post('/parse-pdf', upload.single('pdf'), async (req, res) => {
     const planoData = parsePlanoEnsino(pdfText)
 
     // Gera UAs automaticamente da ementa
-    const uas = gerarUAsDaEmenta(
-      planoData.ementa,
-      planoData.metas_compreensao
-    )
+    const uas = gerarUAsDaEmenta(planoData.ementa)
 
     console.log(`✅ PDF processado: ${planoData.titulo}`)
     console.log(`   - ${planoData.topicos_geradores.length} tópicos geradores`)

@@ -164,7 +164,7 @@ export function gerarUAsDosTopicos(topicos, metas) {
 /**
  * Gera UAs automaticamente a partir da ementa
  */
-export function gerarUAsDaEmenta(ementa, metas) {
+export function gerarUAsDaEmenta(ementa) {
   if (!ementa || typeof ementa !== 'string') {
     return []
   }
@@ -176,8 +176,8 @@ export function gerarUAsDaEmenta(ementa, metas) {
     .filter(topico => topico.length > 3 && !topico.toLowerCase().includes('certificação'))
 
   // Gera UAs baseadas nos tópicos da ementa
-  return topicosEmenta.map((topico, index) => ({
+  return topicosEmenta.map((topico) => ({
     titulo: topico,
-    descricao: metas[index] || metas[0] || 'Meta de compreensão relacionada ao conteúdo da ementa'
+    descricao: 'Conteúdo relacionado ao tema da ementa'
   }))
 }

@@ -176,3 +176,24 @@ export function gerarUAsDosTopicos(topicos: string[], metas: string[]) {
     descricao: metas[index] || metas[0] || 'Meta de compreensão relacionada ao tópico'
   }))
 }
+
+/**
+ * Gera UAs automaticamente a partir da ementa
+ */
+export function gerarUAsDaEmenta(ementa: string) {
+  if (!ementa || typeof ementa !== 'string') {
+    return []
+  }
+
+  // Divide a ementa por pontos (.) e limpa os itens
+  const topicosEmenta = ementa
+    .split('.')
+    .map(topico => topico.trim())
+    .filter(topico => topico.length > 3 && !topico.toLowerCase().includes('certificação'))
+
+  // Gera UAs baseadas nos tópicos da ementa
+  return topicosEmenta.map((topico) => ({
+    titulo: topico,
+    descricao: 'Conteúdo relacionado ao tema da ementa'
+  }))
+}
