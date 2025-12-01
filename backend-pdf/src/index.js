@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
 import { PDFParse } from 'pdf-parse'
-import { parsePlanoEnsino, gerarUAsDosTopicos } from './pdfParser.js'
+import { parsePlanoEnsino, gerarUAsDaEmenta } from './pdfParser.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -84,9 +84,9 @@ app.post('/parse-pdf', upload.single('pdf'), async (req, res) => {
     // Parse do texto para extrair informações estruturadas
     const planoData = parsePlanoEnsino(pdfText)
 
-    // Gera UAs automaticamente dos tópicos geradores
-    const uas = gerarUAsDosTopicos(
-      planoData.topicos_geradores,
+    // Gera UAs automaticamente da ementa
+    const uas = gerarUAsDaEmenta(
+      planoData.ementa,
       planoData.metas_compreensao
     )
 
