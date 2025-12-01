@@ -71,6 +71,10 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
     objetivo_atividade: ''
   })
 
+  // Modal de visualização do prompt gerado
+  const [showPromptModal, setShowPromptModal] = useState(false)
+  const [cartaoPromptVisualizacao, setCartaoPromptVisualizacao] = useState<Cartao | null>(null)
+
   useEffect(() => {
     carregarDados()
   }, [id])
@@ -117,6 +121,11 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
       objetivo_atividade: cartao.objetivo_atividade
     })
     setShowGerarPromptModal(true)
+  }
+
+  function abrirModalPrompt(cartao: Cartao) {
+    setCartaoPromptVisualizacao(cartao)
+    setShowPromptModal(true)
   }
 
   async function gerarPromptCartao() {
@@ -319,7 +328,7 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                       </div>
                     </div>
 
-                    {/* Prompt Gerado */}
+                    {/* Prompt Gerado - Preview */}
                     {cartao.prompt_gerado && (
                       <div className="pt-3 border-t space-y-2">
                         <div className="flex items-center justify-between">
@@ -330,40 +339,23 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                             {cartao.prompt_gerado.ferramenta_recomendada}
                           </Badge>
                         </div>
-                        <div className="bg-muted/50 rounded-md p-3 space-y-3 text-xs">
+                        <div className="bg-muted/50 rounded-md p-3 space-y-2 text-xs">
                           <div>
                             <span className="font-semibold text-primary">Título:</span>
-                            <p className="mt-1">{cartao.prompt_gerado.titulo}</p>
+                            <p className="mt-1 line-clamp-1">{cartao.prompt_gerado.titulo}</p>
                           </div>
                           <div>
                             <span className="font-semibold text-primary">Objetivo:</span>
-                            <p className="mt-1">{cartao.prompt_gerado.objetivo}</p>
+                            <p className="mt-1 line-clamp-2">{cartao.prompt_gerado.objetivo}</p>
                           </div>
-                          <div>
-                            <span className="font-semibold text-primary">Prompt Completo:</span>
-                            <div className="mt-1 bg-background/80 rounded p-2 max-h-32 overflow-y-auto border">
-                              <p className="whitespace-pre-wrap font-mono text-xs">
-                                {cartao.prompt_gerado.prompt_completo}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                if (cartao.prompt_gerado) {
-                                  navigator.clipboard.writeText(cartao.prompt_gerado.prompt_completo)
-                                  alert('Prompt copiado! Cole na ferramenta: ' + cartao.prompt_gerado.ferramenta_recomendada)
-                                }
-                              }}
-                              className="mt-2 h-7 text-xs"
-                            >
-                              📋 Copiar Prompt
-                            </Button>
-                          </div>
-                          <div>
-                            <span className="font-semibold text-primary">Como usar:</span>
-                            <p className="mt-1 italic">{cartao.prompt_gerado.instrucoes_ferramenta || cartao.prompt_gerado.instrucoes_uso || 'Cole na ferramenta recomendada'}</p>
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => abrirModalPrompt(cartao)}
+                            className="w-full mt-2 h-8 text-xs"
+                          >
+                            📋 Ver Prompt Completo
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -535,6 +527,144 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal de Visualização do Prompt Gerado */}
+      <Modal
+        open={showPromptModal}
+        onOpenChange={setShowPromptModal}
+        title={
+          <div className="flex items-center gap-3">
+            {cartaoPromptVisualizacao && (
+              <>
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span>Prompt Gerado - {TIPO_CARTAO_CONFIG[cartaoPromptVisualizacao.tipo as TipoCartao].label}</span>
+              </>
+            )}
+          </div>
+        }
+        description="Prompt educacional otimizado gerado pela IA"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+      >
+        {cartaoPromptVisualizacao?.prompt_gerado && (
+          <div className="space-y-6">
+            <Alert>
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <span>Gerado pela IA Gemini 2.5 Flash</span>
+                  <Badge variant="outline" className="ml-2">
+                    {cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada}
+                  </Badge>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4">
+              <div>
+                <label className="font-semibold text-sm text-primary">Título da Atividade:</label>
+                <p className="mt-1 p-3 bg-muted/50 rounded-md">
+                  {cartaoPromptVisualizacao.prompt_gerado.titulo}
+                </p>
+              </div>
+
+              <div>
+                <label className="font-semibold text-sm text-primary">Objetivo:</label>
+                <p className="mt-1 p-3 bg-muted/50 rounded-md">
+                  {cartaoPromptVisualizacao.prompt_gerado.objetivo}
+                </p>
+              </div>
+
+              <div>
+                <label className="font-semibold text-sm text-primary">Prompt Completo:</label>
+                <div className="mt-1 bg-muted/30 rounded-md border">
+                  <div className="p-3 max-h-64 overflow-y-auto">
+                    <p className="whitespace-pre-wrap font-mono text-sm">
+                      {cartaoPromptVisualizacao.prompt_gerado.prompt_completo}
+                    </p>
+                  </div>
+                  <div className="border-t p-3 bg-muted/20">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        if (cartaoPromptVisualizacao?.prompt_gerado) {
+                          navigator.clipboard.writeText(cartaoPromptVisualizacao.prompt_gerado.prompt_completo)
+                          alert('Prompt copiado! Cole na ferramenta: ' + cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      📋 Copiar Prompt Completo
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-sm text-primary flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  Como Usar Este Prompt:
+                </label>
+                <div className="mt-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      1
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
+                        <strong>Abra a ferramenta:</strong> {cartaoPromptVisualizacao.prompt_gerado.ferramenta_recomendada}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 mt-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-green-900 dark:text-green-100 leading-relaxed">
+                        <strong>Cole o prompt:</strong> Copie o prompt completo acima e cole na ferramenta
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 mt-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      3
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-purple-900 dark:text-purple-100 leading-relaxed">
+                        <strong>Execute:</strong> {cartaoPromptVisualizacao.prompt_gerado.instrucoes_ferramenta ||
+                         cartaoPromptVisualizacao.prompt_gerado.instrucoes_uso ||
+                         'Pressione Enter ou execute para obter o conteúdo educacional otimizado'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-md border border-blue-300 dark:border-blue-700">
+                    <p className="text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                      <Sparkles className="h-3 w-3" />
+                      <span><strong>Dica:</strong> Este prompt foi otimizado pela IA para gerar conteúdo educacional de alta qualidade!</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPromptModal(false)
+                  setCartaoPromptVisualizacao(null)
+                }}
+                className="flex-1"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
