@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, BookOpen, Trash2, Menu, X, Eye } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Menu, X, Eye, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -27,8 +27,10 @@ export default function Dashboard() {
   // Modal states
   const [showCreateUCModal, setShowCreateUCModal] = useState(false)
   const [showCreateUAModal, setShowCreateUAModal] = useState(false)
+  const [showEditUAModal, setShowEditUAModal] = useState(false)
   const [novaUC, setNovaUC] = useState({ titulo: '', descricao: '' })
   const [novaUA, setNovaUA] = useState({ titulo: '', descricao: '' })
+  const [uaEditando, setUaEditando] = useState<UnidadeAprendizagem | null>(null)
 
   // Inicializa sidebar baseado no tamanho da tela (apenas no cliente)
   useEffect(() => {
@@ -247,6 +249,41 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao deletar UA:', error)
       setError('Erro ao deletar Unidade de Aprendizagem')
+    }
+  }
+
+  function abrirModalEditarUA(ua: UnidadeAprendizagem) {
+    setUaEditando(ua)
+    setShowEditUAModal(true)
+  }
+
+  async function salvarEdicaoUA() {
+    if (!uaEditando) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { error: err } = await supabase
+        .from('unidades_aprendizagem')
+        .update({
+          titulo: uaEditando.titulo,
+          descricao: uaEditando.descricao
+        })
+        .eq('id', uaEditando.id)
+
+      if (err) throw err
+
+      setShowEditUAModal(false)
+      setUaEditando(null)
+      if (ucSelecionada) {
+        await carregarUAs(ucSelecionada)
+      }
+    } catch (error) {
+      console.error('Erro ao editar UA:', error)
+      setError('Erro ao editar Unidade de Aprendizagem')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -483,6 +520,15 @@ export default function Dashboard() {
                                 <Eye className="h-4 w-4" />
                                 Ver Cartões
                               </ButtonLink>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => abrirModalEditarUA(ua)}
+                                className="gap-2"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Editar
+                              </Button>
                             </div>
                           </div>
                           <Button
@@ -625,6 +671,52 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal Editar UA */}
+      <Modal
+        open={showEditUAModal}
+        onOpenChange={setShowEditUAModal}
+        title="Editar Unidade de Aprendizagem"
+        description="Altere o título e descrição da UA"
+      >
+        {uaEditando && (
+          <div className="space-y-4">
+            <Input
+              label="Título da UA *"
+              placeholder="Ex: Análise de Vigas, Transformadas de Laplace"
+              value={uaEditando.titulo}
+              onChange={(e) => setUaEditando({ ...uaEditando, titulo: e.target.value })}
+            />
+            <Textarea
+              label="Descrição / Conteúdo"
+              placeholder="Conteúdo relacionado ao tema da ementa"
+              rows={4}
+              value={uaEditando.descricao}
+              onChange={(e) => setUaEditando({ ...uaEditando, descricao: e.target.value })}
+            />
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={salvarEdicaoUA}
+                isLoading={loading}
+                className="flex-1"
+              >
+                Salvar Alterações
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditUAModal(false)
+                  setUaEditando(null)
+                  setError(null)
+                }}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
