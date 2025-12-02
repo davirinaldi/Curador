@@ -25,10 +25,10 @@ const FERRAMENTAS_CONFIG = {
     limite_caracteres: 2000 // Google Colab tem limite de 2000 caracteres
   },
   estudo_caso: {
-    ferramenta: 'NotebookLM' as const,
-    justificativa: 'Para análise profunda de casos reais com múltiplas fontes e contexto detalhado',
+    ferramenta: 'Gemini' as const,
+    justificativa: 'Para análise profunda de casos reais com respostas contextualizadas e interativas',
     formato_ideal: 'Análise estruturada com contexto, problema, solução e conclusões',
-    limite_caracteres: 12000 // NotebookLM permite análises extensas
+    limite_caracteres: 8000 // Gemini aceita prompts moderados a extensos
   },
   quiz: {
     ferramenta: 'Gemini' as const,
@@ -164,11 +164,11 @@ REQUISITOS DE QUALIDADE:
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
-2. Acesse NotebookLM (https://notebooklm.google.com)
-3. Crie um novo notebook
-4. Cole o prompt no campo de texto
-5. Opcionalmente, adicione fontes externas (artigos, papers, normas técnicas)
-6. A IA gerará um estudo de caso detalhado e realista
+2. Acesse Gemini (https://gemini.google.com)
+3. Cole o prompt no campo de texto
+4. Pressione Enter para gerar o conteúdo
+5. A IA gerará um estudo de caso detalhado e realista
+6. Você pode fazer perguntas de acompanhamento para aprofundar aspectos específicos
 7. Use as questões de reflexão para promover discussões em sala de aula`
   },
 
