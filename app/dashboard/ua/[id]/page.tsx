@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { supabase } from '@/lib/supabase/client'
 import { otimizarPromptComGemini } from '@/lib/gemini'
+import { criarGeracao, aguardarConclusaoGeracao, extrairUrlDownload, fazerDownloadArquivo } from '@/lib/gamma'
 import { UnidadeAprendizagem, Cartao, TipoCartao } from '@/lib/types'
 
 const TIPO_CARTAO_CONFIG = {
@@ -74,6 +75,25 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
   // Modal de visualização do prompt gerado
   const [showPromptModal, setShowPromptModal] = useState(false)
   const [cartaoPromptVisualizacao, setCartaoPromptVisualizacao] = useState<Cartao | null>(null)
+
+  // Modal de configuração do Gamma
+  const [modalGammaAberto, setModalGammaAberto] = useState(false)
+  const [cartaoParaGamma, setCartaoParaGamma] = useState<Cartao | null>(null)
+  const [gerandoGamma, setGerandoGamma] = useState(false)
+  const [progressoGamma, setProgressoGamma] = useState('')
+  const [configGamma, setConfigGamma] = useState({
+    textMode: 'generate' as 'generate' | 'condense' | 'preserve',
+    format: 'presentation' as 'presentation' | 'document' | 'social' | 'webpage',
+    numCards: 15,
+    cardSplit: 'auto' as 'auto' | 'inputTextBreaks',
+    additionalInstructions: '',
+    exportAs: 'pptx' as '' | 'pdf' | 'pptx',
+    textAmount: 'detailed' as 'minimal' | 'concise' | 'detailed' | 'comprehensive',
+    textTone: 'technical' as 'professional' | 'casual' | 'friendly' | 'formal' | 'technical',
+    textAudience: 'Estudantes de Engenharia',
+    textLanguage: 'pt-br' as 'pt-br' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh-cn' | 'zh-tw',
+    imageSource: 'aiGenerated' as 'aiGenerated' | 'webAllImages' | 'webFreeToUse' | 'unsplash' | 'placeholder' | 'noImages'
+  })
 
   useEffect(() => {
     carregarDados()
@@ -205,6 +225,90 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
       objetivo_atividade: cartao.objetivo_atividade
     })
     setShowEditModal(true)
+  }
+
+  async function gerarComGamma() {
+    if (!cartaoParaGamma?.prompt_gerado) return
+
+    try {
+      setGerandoGamma(true)
+      setError(null)
+      setProgressoGamma('Criando apresentação no Gamma...')
+
+      // Preparar parâmetros para a API do Gamma
+      const params = {
+        inputText: cartaoParaGamma.prompt_gerado.prompt_completo,
+        textMode: configGamma.textMode,
+        format: configGamma.format,
+        numCards: configGamma.numCards,
+        cardSplit: configGamma.cardSplit,
+        additionalInstructions: configGamma.additionalInstructions || undefined,
+        exportAs: configGamma.exportAs || undefined,
+        textOptions: {
+          amount: configGamma.textAmount,
+          tone: configGamma.textTone,
+          audience: configGamma.textAudience,
+          language: configGamma.textLanguage
+        },
+        imageOptions: {
+          source: configGamma.imageSource
+        }
+      }
+
+      // Criar geração no Gamma
+      const geracaoResponse = await criarGeracao(params)
+      console.log('Geração criada:', geracaoResponse)
+
+      // Se foi solicitada exportação, aguardar conclusão e fazer download
+      if (configGamma.exportAs) {
+        setProgressoGamma('Aguardando conclusão da geração...')
+
+        // Aguardar 3 segundos antes de começar polling (API pode demorar para registrar)
+        await new Promise(resolve => setTimeout(resolve, 3000))
+
+        const statusCompleto = await aguardarConclusaoGeracao(
+          geracaoResponse.generationId,
+          60, // 60 tentativas
+          2000 // intervalo de 2 segundos
+        )
+
+        console.log('Status completo:', statusCompleto)
+
+        // Tentar extrair URL de download
+        const urlDownload = extrairUrlDownload(statusCompleto, configGamma.exportAs)
+
+        if (urlDownload) {
+          setProgressoGamma('Fazendo download do arquivo...')
+
+          const nomeArquivo = `apresentacao-${cartaoParaGamma.id}.${configGamma.exportAs}`
+          await fazerDownloadArquivo(urlDownload, nomeArquivo)
+
+          alert(`✅ Apresentação gerada e baixada com sucesso!\n\nArquivo: ${nomeArquivo}\n\nVocê também pode acessar no Gamma: ${statusCompleto.gammaUrl || 'https://gamma.app'}`)
+        } else {
+          // URL não encontrada - logar resposta completa para debug
+          console.warn('URL de download não encontrada na resposta:', statusCompleto)
+          alert(`✅ Apresentação gerada com sucesso!\n\nID: ${geracaoResponse.generationId}\n\n⚠️ Não foi possível fazer download automático.\nA URL de download não foi encontrada na resposta.\n\nAbrindo Gamma para você acessar manualmente...`)
+          window.open(statusCompleto.gammaUrl || 'https://gamma.app', '_blank')
+        }
+      } else {
+        // Sem exportação - apenas mostrar sucesso
+        alert(`✅ Geração iniciada com sucesso!\n\nID: ${geracaoResponse.generationId}\n\nSua apresentação está sendo criada no Gamma.\n\nAbrindo Gamma em nova aba...`)
+        window.open('https://gamma.app', '_blank')
+      }
+
+      // Fechar modal
+      setModalGammaAberto(false)
+      setCartaoParaGamma(null)
+      setProgressoGamma('')
+
+    } catch (error: any) {
+      console.error('Erro ao gerar com Gamma:', error)
+      setError(error.message || 'Erro ao gerar apresentação no Gamma. Verifique sua API key.')
+      alert('❌ Erro: ' + (error.message || 'Não foi possível gerar a apresentação'))
+      setProgressoGamma('')
+    } finally {
+      setGerandoGamma(false)
+    }
   }
 
   if (loading && !ua) {
@@ -605,7 +709,7 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                       {cartaoPromptVisualizacao.prompt_gerado.prompt_completo}
                     </p>
                   </div>
-                  <div className="border-t p-3 bg-muted/20">
+                  <div className="border-t p-3 bg-muted/20 space-y-2">
                     <Button
                       variant="primary"
                       onClick={() => {
@@ -617,6 +721,16 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                       className="w-full"
                     >
                       📋 Copiar Prompt Completo
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setModalGammaAberto(true)
+                        setCartaoParaGamma(cartaoPromptVisualizacao)
+                      }}
+                      className="w-full"
+                    >
+                      ✨ Gerar Apresentação com Gamma
                     </Button>
                   </div>
                 </div>
@@ -683,6 +797,114 @@ export default function UACartoesPage({ params }: { params: Promise<{ id: string
                 className="flex-1"
               >
                 Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal de Configuração do Gamma */}
+      <Modal
+        open={modalGammaAberto}
+        onOpenChange={setModalGammaAberto}
+        title="Gerar Apresentação com Gamma"
+      >
+        {cartaoParaGamma?.prompt_gerado && (
+          <div className="flex flex-col max-h-[80vh]">
+            <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 flex-shrink-0">
+              <AlertDescription className="text-sm">
+                Configure as opções básicas para gerar sua apresentação
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2 mt-4">
+              {/* Número de Slides */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Número de Slides ({configGamma.numCards})
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  value={configGamma.numCards}
+                  onChange={(e) => setConfigGamma({ ...configGamma, numCards: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recomendado: 10-20 slides para uma aula
+                </p>
+              </div>
+
+              {/* Quantidade de Conteúdo */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Quantidade de Conteúdo
+                </label>
+                <select
+                  value={configGamma.textAmount}
+                  onChange={(e) => setConfigGamma({ ...configGamma, textAmount: e.target.value as any })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="concise">Conciso - Pontos principais</option>
+                  <option value="detailed">Detalhado - Conteúdo completo</option>
+                  <option value="comprehensive">Abrangente - Muito detalhado</option>
+                </select>
+              </div>
+
+              {/* Imagens */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Imagens
+                </label>
+                <select
+                  value={configGamma.imageSource}
+                  onChange={(e) => setConfigGamma({ ...configGamma, imageSource: e.target.value as any })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="aiGenerated">Geradas por IA</option>
+                  <option value="webFreeToUse">Imagens livres para uso</option>
+                  <option value="unsplash">Unsplash (Fotos profissionais)</option>
+                  <option value="noImages">Sem imagens</option>
+                </select>
+              </div>
+
+              {/* Exportar */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Download automático
+                </label>
+                <select
+                  value={configGamma.exportAs}
+                  onChange={(e) => setConfigGamma({ ...configGamma, exportAs: e.target.value as any })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Apenas visualizar no Gamma</option>
+                  <option value="pptx">Baixar PowerPoint (.pptx)</option>
+                  <option value="pdf">Baixar PDF</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t mt-4 flex-shrink-0 bg-background">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setModalGammaAberto(false)
+                  setCartaoParaGamma(null)
+                }}
+                className="flex-1"
+                disabled={gerandoGamma}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={gerarComGamma}
+                className="flex-1"
+                disabled={gerandoGamma}
+              >
+                {gerandoGamma ? (progressoGamma || 'Gerando...') : '✨ Gerar no Gamma'}
               </Button>
             </div>
           </div>

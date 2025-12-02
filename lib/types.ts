@@ -41,6 +41,29 @@ export interface PromptGerado {
   contexto_adicional?: string
 }
 
+export interface ConfiguracaoGamma {
+  textMode: 'generate' | 'condense' | 'preserve'
+  format: 'presentation' | 'document' | 'social' | 'webpage'
+  numCards: number
+  cardSplit: 'auto' | 'inputTextBreaks'
+  additionalInstructions: string
+  exportAs?: 'pdf' | 'pptx'
+  textOptions: {
+    amount: 'minimal' | 'concise' | 'detailed' | 'comprehensive'
+    tone: 'professional' | 'casual' | 'friendly' | 'formal' | 'technical'
+    audience: string
+    language: string
+  }
+  imageOptions: {
+    source: 'ai-generated' | 'stock' | 'placeholder' | 'none'
+    style?: string
+  }
+  cardOptions: {
+    showHeader: boolean
+    showFooter: boolean
+  }
+}
+
 export interface ParametrosCartao {
   nivel_turma: string
   publico_alvo: string
