@@ -13,10 +13,10 @@ export interface ParametrosCartao {
 // Configuração de ferramentas por tipo de cartão
 const FERRAMENTAS_CONFIG = {
   teoria: {
-    ferramenta: 'NotebookLM' as const,
-    justificativa: 'Para conteúdo teórico extenso com conceitos complexos, equações e referências',
+    ferramenta: 'Gemini' as const,
+    justificativa: 'Para conteúdo teórico extenso com conceitos complexos, equações e explicações contextualizadas',
     formato_ideal: 'Texto estruturado com seções, equações LaTeX e referências bibliográficas',
-    limite_caracteres: 10000 // NotebookLM suporta prompts extensos
+    limite_caracteres: 8000 // Gemini aceita prompts extensos
   },
   pratica: {
     ferramenta: 'Google Colab' as const,
@@ -73,9 +73,9 @@ REQUISITOS DE QUALIDADE:
 
     instrucoes_uso: `
 1. Copie o prompt completo abaixo
-2. Acesse NotebookLM (https://notebooklm.google.com)
-3. Crie um novo notebook ou abra um existente
-4. Cole o prompt no campo de texto
+2. Acesse Gemini (https://gemini.google.com)
+3. Cole o prompt no campo de texto
+4. Pressione Enter para gerar o conteúdo
 5. A IA gerará um material teórico estruturado e completo
 6. Você pode fazer perguntas adicionais para aprofundar conceitos específicos`
   },
