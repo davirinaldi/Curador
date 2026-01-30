@@ -16,7 +16,7 @@ function extractSection(text, startMarker, endMarker) {
     return textAfterStart.trim()
   }
 
-  const endIndex = textAfterStart.indexOf(endMarker)
+  endIndex = textAfterStart.indexOf(endMarker)
   if (endIndex === -1) {
     return textAfterStart.trim()
   }

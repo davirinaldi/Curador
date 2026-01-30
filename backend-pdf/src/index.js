@@ -20,8 +20,7 @@ const upload = multer({
     } else {
       cb(new Error('Apenas arquivos PDF são permitidos'))
     }
-  }
-})
+ 
 
 // Middlewares - CORS configurado para aceitar múltiplas origens
 const allowedOrigins = [
