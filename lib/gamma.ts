@@ -1,26 +1,6 @@
 import axios from 'axios'
 
-export interface GammaGenerationParams {
-  inputText: string
-  textMode: 'generate' | 'condense' | 'preserve'
-  format?: 'presentation' | 'document' | 'social' | 'webpage'
-  themeId?: string
-  numCards?: number // 1-60 para Pro, 1-75 para Ultra
-  cardSplit?: 'auto' | 'inputTextBreaks'
-  additionalInstructions?: string // 1-2000 caracteres
-  folderIds?: string[]
-  exportAs?: 'pdf' | 'pptx'
-  textOptions?: {
-    amount?: 'minimal' | 'concise' | 'detailed' | 'comprehensive'
-    tone?: 'professional' | 'casual' | 'friendly' | 'formal' | 'technical'
-    audience?: string
-    language?: 'pt-br' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'ko' | 'zh-cn' | 'zh-tw'
-  }
-  imageOptions?: {
-    source?: 'aiGenerated' | 'webAllImages' | 'webFreeToUse' | 'webFreeToUseCommercially' | 'pictographic' | 'giphy' | 'unsplash' | 'placeholder' | 'noImages' | 'themeAccent'
-    style?: string
-  }
-}
+
 
 export interface GammaGenerationResponse {
   generationId: string
